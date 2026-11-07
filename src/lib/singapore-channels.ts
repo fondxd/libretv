@@ -8,6 +8,7 @@ export interface SingaporeChannel {
   streamType: 'hls' | 'mpd' | 'audio';
   url: string;
   altHls?: string;
+  fallbackHls?: string;
   mpdUrl?: string;
   clearKeys?: Record<string, string>;
   youtubeId?: string;
@@ -44,10 +45,11 @@ export const SINGAPORE_CHANNELS: SingaporeChannel[] = [
     category: 'fta',
     categoryLabel: 'Free-to-Air',
     language: 'English',
-    streamType: 'hls',
-    url: 'https://d2e1asnsl7br7b.cloudfront.net/7782e205e72f43aeb4a48ec97f66ebbe/index.m3u8',
-    mpdUrl: 'https://mwmpos02.akamaized.net/out/v1/8e5c0396bfbc4a668fac323649dc6aa1/manifest.mpd',
+    streamType: 'mpd',
+    url: 'https://mwmpos02.akamaized.net/out/v1/8e5c0396bfbc4a668fac323649dc6aa1/manifest.mpd',
     clearKeys: { '9c7b6aaca62d4dc59567656b371eaa21': '253951f121461cbb6b8aac526438b368' },
+    altHls: '/api/singapore/hls/ch5',
+    fallbackHls: '/api/singapore/hls/ch5',
     mewatchUrl: 'https://www.mewatch.sg/channels/channel-5/97098',
     logo: 'https://prod98.togglestatic.com/shain/v1/dataservice/ResizeImage/$value?Format=\'png\'&Quality=85&ImageId=\'6318760\'&EntityType=\'Item\'&EntityId=\'97098\'&Width=356&Height=250',
     tag: '1080p HD',
@@ -63,6 +65,8 @@ export const SINGAPORE_CHANNELS: SingaporeChannel[] = [
     streamType: 'mpd',
     url: 'https://tglmp01.akamaized.net/out/v1/6043d36e1ffb4b52a959fb71b4bbcd31/manifest.mpd',
     clearKeys: { '560e2a97335148708010f6abc6e01ff9': '004327cdad8609155073663a7e404df6' },
+    altHls: '/api/singapore/hls/ch8',
+    fallbackHls: '/api/singapore/hls/ch8',
     mewatchUrl: 'https://www.mewatch.sg/channels/channel-8/97104',
     logo: 'https://prod98.togglestatic.com/shain/v1/dataservice/ResizeImage/$value?Format=\'png\'&Quality=85&ImageId=\'6318750\'&EntityType=\'Item\'&EntityId=\'97104\'&Width=369&Height=250',
     tag: '1080p HD',
@@ -78,6 +82,8 @@ export const SINGAPORE_CHANNELS: SingaporeChannel[] = [
     streamType: 'mpd',
     url: 'https://tglmp04.akamaized.net/out/v1/0ba219dbd030477784e4a8104bd9e827/manifest.mpd',
     clearKeys: { '3769532992d643028eedc46cdde65929': '03d5b8832a997377a032bc04c6d18add' },
+    altHls: '/api/singapore/hls/chu',
+    fallbackHls: '/api/singapore/hls/chu',
     mewatchUrl: 'https://www.mewatch.sg/channels/channel-u/97129',
     logo: 'https://prod98.togglestatic.com/shain/v1/dataservice/ResizeImage/$value?Format=\'png\'&Quality=85&ImageId=\'6318764\'&EntityType=\'Item\'&EntityId=\'97129\'&Width=396&Height=250',
     tag: '1080p HD',

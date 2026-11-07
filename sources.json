@@ -1,33 +1,33 @@
 {
-  "name": "LibreTV 精选默认源列表",
+  "name": "LibreTV Curated Default Sources",
   "version": 2,
   "sources": [
     {
-      "name": "暴风资源 (推荐·高速)",
+      "name": "Baofeng Stream (High Speed)",
       "url": "https://bfzyapi.com/api.php/provide/vod",
       "detail": "https://bfzyapi.com",
       "isAdult": false
     },
     {
-      "name": "量子资源 (高清·稳定)",
+      "name": "Quantum Stream (HD · Stable)",
       "url": "https://cj.lziapi.com/api.php/provide/vod",
       "detail": "https://cj.lziapi.com",
       "isAdult": false
     },
     {
-      "name": "非凡资源 (片源丰富)",
+      "name": "Feifan Stream (Rich Library)",
       "url": "http://cj.ffzyapi.com/api.php/provide/vod",
       "detail": "http://cj.ffzyapi.com",
       "isAdult": false
     },
     {
-      "name": "光速资源 (极速更新)",
+      "name": "Guangsu Stream (Fast Updates)",
       "url": "https://api.guangsuapi.com/api.php/provide/vod",
       "detail": "https://api.guangsuapi.com",
       "isAdult": false
     },
     {
-      "name": "iKun资源 (备用综合)",
+      "name": "iKun Stream (Backup)",
       "url": "https://ikunzyapi.com/api.php/provide/vod",
       "detail": "https://ikunzyapi.com",
       "isAdult": false
@@ -35,7 +35,7 @@
   ],
   "liveSources": [
     {
-      "name": "全球综合直播 (IPTV-org)",
+      "name": "Global Live IPTV (IPTV-org)",
       "url": "https://iptv-org.github.io/iptv/index.m3u"
     }
   ]

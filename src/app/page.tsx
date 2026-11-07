@@ -16,13 +16,13 @@ import { useToast } from '@/components/toast';
 import { EmptyState } from '@/components/states';
 import { Icon } from '@/components/icon';
 import { SiteFooter } from '@/components/site-footer';
+import { Pagination } from '@/components/pagination';
 
 /**
  * 首页：搜索（URL ?s= 驱动，可后退/分享）+ 豆瓣推荐。
  * 搜索状态由 React Query 管理，失败源在结果区顶部以非阻塞方式展示。
  */
-/** 搜索结果分批渲染的批大小：一次挂载上千张卡片会明显掉帧 */
-const RESULT_PAGE_SIZE = 60;
+const DEFAULT_PAGE_SIZE = 36;
 
 export default function HomePage() {
   return (
@@ -37,6 +37,21 @@ function HomeContent() {
   const router = useRouter();
   const { toast } = useToast();
   const urlQuery = searchParams.get('s') || '';
+  const urlPage = parseInt(searchParams.get('p') || '1', 10);
+  const currentPage = Math.max(1, isNaN(urlPage) ? 1 : urlPage);
+  const resultsRef = useRef<HTMLElement>(null);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('libretv_page_size');
+      if (saved) {
+        const n = parseInt(saved, 10);
+        if (n > 0) setPageSize(n);
+      }
+    } catch {}
+  }, []);
+
   // 精确订阅所需字段（对齐 live 页的做法）：搜索流式期间逐源写健康度、
   // 打开设置抽屉/历史面板等无关 store 变化，都不应触发首页整树重渲染
   const customAPIs = useAppStore((s) => s.customAPIs);
@@ -128,7 +143,7 @@ function HomeContent() {
       toast('Please add and enable at least one video source in Settings', 'warning');
       return;
     }
-    router.push(`/?s=${encodeURIComponent(query)}`, { scroll: false });
+    router.push(`/?s=${encodeURIComponent(query)}&p=1`, { scroll: false });
     searchHistory.record(query);
   };
 
@@ -156,10 +171,27 @@ function HomeContent() {
   // 跨源同名聚合：同名影片合并为一张卡片，展开后可选择具体来源
   const groups = useMemo(() => aggregateResults(list), [list]);
 
-  // 分批渲染：新一次搜索（groups 变化）时重置回首批
-  const [visibleCount, setVisibleCount] = useState(RESULT_PAGE_SIZE);
-  const visibleGroups = useMemo(() => groups.slice(0, visibleCount), [groups, visibleCount]);
-  useEffect(() => setVisibleCount(RESULT_PAGE_SIZE), [groups]);
+  const totalPages = Math.max(1, Math.ceil(groups.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+
+  const pagedGroups = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return groups.slice(start, start + pageSize);
+  }, [groups, safePage, pageSize]);
+
+  const handlePageChange = (newPage: number) => {
+    router.push(`/?s=${encodeURIComponent(urlQuery)}&p=${newPage}`, { scroll: false });
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    try {
+      localStorage.setItem('libretv_page_size', String(newSize));
+    } catch {}
+    router.push(`/?s=${encodeURIComponent(urlQuery)}&p=1`, { scroll: false });
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -280,10 +312,10 @@ function HomeContent() {
 
         {/* 搜索结果 */}
         {urlQuery && (
-          <section aria-label="Search Results" className="mb-10">
-            <div className="flex items-center justify-between mb-3">
+          <section ref={resultsRef} aria-label="Search Results" className="mb-10 scroll-mt-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
               <h2 className="text-sm text-muted">
-                Search results for &quot;<span className="text-content">{urlQuery}</span>&quot;
+                Search results for &quot;<span className="text-content font-medium">{urlQuery}</span>&quot;
                 {isSearching ? (
                   <span className="text-faint">
                     &nbsp;({streamedOutcomes.length}/{selectedSources.length} sources ready…)
@@ -296,6 +328,13 @@ function HomeContent() {
                   )
                 )}
               </h2>
+              {groups.length > 0 && (
+                <div className="text-xs text-faint flex items-center gap-2">
+                  <span>Page <strong className="text-content">{safePage}</strong> of <strong className="text-content">{totalPages}</strong></span>
+                  <span className="hidden sm:inline text-line">|</span>
+                  <span className="hidden sm:inline">{groups.length} total videos</span>
+                </div>
+              )}
             </div>
 
             {failures.length > 0 && (
@@ -326,8 +365,8 @@ function HomeContent() {
               <NoSourceGuide hasSources={customAPIs.length > 0 || envSources.length > 0} />
             ) : list.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
-                  {visibleGroups.map((group) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 items-start">
+                  {pagedGroups.map((group) => (
                     <AggregatedCard
                       key={group.key}
                       group={group}
@@ -336,16 +375,16 @@ function HomeContent() {
                     />
                   ))}
                 </div>
-                {groups.length > visibleCount && (
-                  <div className="flex justify-center mt-4">
-                    <button
-                      className="btn-ghost btn-sm"
-                      onClick={() => setVisibleCount((v) => v + RESULT_PAGE_SIZE)}
-                    >
-                      Load More ({groups.length - visibleCount} remaining)
-                    </button>
-                  </div>
-                )}
+                <Pagination
+                  currentPage={safePage}
+                  totalPages={totalPages}
+                  pageSize={pageSize}
+                  totalItems={groups.length}
+                  pageSizeOptions={[24, 36, 48, 60, 96]}
+                  onPageChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
+                  className="mt-6 border-t border-line"
+                />
               </>
             ) : isSearching ? (
               <ResultsSkeleton />

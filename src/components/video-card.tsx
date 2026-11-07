@@ -145,7 +145,7 @@ export function AggregatedCard({
   return (
     <div
       ref={inViewRef}
-      className={cn('card', !multi && 'hover:scale-[1.02] hover:shadow-md', multi && expanded && 'ring-1 ring-accent/40')}
+      className={cn('card min-h-[175px] sm:min-h-[195px] transition-all', !multi && 'hover:scale-[1.02] hover:shadow-md', multi && expanded && 'ring-1 ring-accent/40')}
     >
       {/* 不用 h-full：展开面板需要撑高卡片，等高裁切会让面板不可见 */}
       <div
@@ -162,7 +162,7 @@ export function AggregatedCard({
         }}
       >
         {showImg ? (
-          <div className="relative flex-shrink-0 w-[105px] sm:w-[120px] aspect-[2/3] bg-chip">
+          <div className="relative flex-shrink-0 w-[125px] sm:w-[145px] aspect-[2/3] bg-chip rounded-l-xl overflow-hidden">
             <SmartImage
               url={group.pic}
               mode={imageProxyMode}
@@ -173,33 +173,33 @@ export function AggregatedCard({
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" />
             {multi && (
-              <span className="absolute top-1.5 left-1.5 tag bg-black/70 text-accent font-medium">
+              <span className="absolute top-1.5 left-1.5 tag bg-black/75 text-accent font-medium shadow-sm">
                 {group.items.length} {group.items.length === 1 ? 'Source' : 'Sources'}
               </span>
             )}
           </div>
         ) : (
-          <div className="relative flex-shrink-0 w-[105px] sm:w-[120px] aspect-[2/3] bg-chip flex items-center justify-center">
+          <div className="relative flex-shrink-0 w-[125px] sm:w-[145px] aspect-[2/3] bg-chip rounded-l-xl flex items-center justify-center">
             <svg className="w-8 h-8 text-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16m10-16v16M3 6a1 1 0 011-1h1a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V6zm4 0a1 1 0 011-1h1a1 1 0 011 1v12a1 1 0 01-1 1h-1a1 1 0 01-1-1V6zm8 0a1 1 0 011-1h1a1 1 0 011 1v12a1 1 0 01-1 1h-1a1 1 0 01-1-1V6zm4 0a1 1 0 011-1h1a1 1 0 011 1v12a1 1 0 01-1 1h-1a1 1 0 01-1-1V6z" />
             </svg>
             {multi && (
-              <span className="absolute top-1.5 left-1.5 tag bg-black/70 text-accent font-medium">
+              <span className="absolute top-1.5 left-1.5 tag bg-black/75 text-accent font-medium shadow-sm">
                 {group.items.length} {group.items.length === 1 ? 'Source' : 'Sources'}
               </span>
             )}
           </div>
         )}
 
-        <div className="p-2.5 flex flex-col flex-grow min-w-0">
+        <div className="p-3 flex flex-col flex-grow min-w-0 justify-between">
           <div className="flex-grow">
-            <h3 className="font-semibold text-sm text-content mb-1.5 line-clamp-2" title={group.name}>
+            <h3 className="font-semibold text-sm sm:text-base text-content mb-1.5 line-clamp-2 sm:line-clamp-3 leading-snug" title={group.name}>
               {group.name}
             </h3>
-            <div className="flex flex-wrap gap-1 mb-1.5">
-              {group.typeName && <span className="tag bg-accent/15 text-accent">{group.typeName}</span>}
-              {group.year && <span className="tag bg-purple-500/15 text-purple-600 dark:text-purple-300">{group.year}</span>}
-              {adult && <span className="tag bg-pink-500/15 text-pink-600 dark:text-pink-400">(18+)</span>}
+            <div className="flex flex-wrap gap-1 mb-2">
+              {group.typeName && <span className="tag bg-accent/15 text-accent font-medium">{group.typeName}</span>}
+              {group.year && <span className="tag bg-purple-500/15 text-purple-600 dark:text-purple-300 font-medium">{group.year}</span>}
+              {adult && <span className="tag bg-pink-500/15 text-pink-600 dark:text-pink-400 font-medium">(18+)</span>}
               {singleKey && (
                 <QualityBadge
                   entry={qualities[singleKey]}
@@ -208,17 +208,17 @@ export function AggregatedCard({
                 />
               )}
             </div>
-            <p className="text-xs text-muted line-clamp-2 mb-2">{group.remarks || 'No description available'}</p>
+            <p className="text-xs text-muted line-clamp-2 sm:line-clamp-3 mb-2 leading-relaxed">{group.remarks || 'No description available'}</p>
           </div>
-          <div className="flex items-center justify-between gap-1.5 mt-auto pt-1.5 border-t border-line">
-            <span className="tag bg-chip text-muted truncate max-w-[80%]">
-              {multi ? `${group.items.length} Sources` : group.items[0].sourceName}
+          <div className="flex items-center justify-between gap-1.5 mt-auto pt-2 border-t border-line">
+            <span className="tag bg-chip text-muted truncate max-w-[80%] font-medium">
+              {multi ? `${group.items.length} Sources Available` : group.items[0].sourceName}
             </span>
             {multi && (
               <span className="flex items-center gap-1 shrink-0">
                 {progress.best && (
                   <span
-                    className="tag bg-accent/15 text-accent font-medium"
+                    className="tag bg-accent/15 text-accent font-medium shadow-sm"
                     title={
                       progress.known < progress.total
                         ? `Probed max quality (${progress.known}/${progress.total} sources tested)`
@@ -329,7 +329,7 @@ export function VideoCard({ item, onClick }: { item: SearchResultItem; onClick: 
 
   return (
     <div
-      className="card cursor-pointer hover:scale-[1.02] hover:shadow-md h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+      className="card min-h-[175px] sm:min-h-[195px] cursor-pointer hover:scale-[1.02] hover:shadow-md h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 transition-all"
       role="button"
       tabIndex={0}
       onClick={onClick}
@@ -343,7 +343,7 @@ export function VideoCard({ item, onClick }: { item: SearchResultItem; onClick: 
     >
       <div className="flex h-full">
         {showImg ? (
-          <div className="relative flex-shrink-0 w-[105px] sm:w-[120px] aspect-[2/3] bg-chip">
+          <div className="relative flex-shrink-0 w-[125px] sm:w-[145px] aspect-[2/3] bg-chip rounded-l-xl overflow-hidden">
             <SmartImage
               url={item.pic}
               mode={imageProxyMode}
@@ -355,26 +355,26 @@ export function VideoCard({ item, onClick }: { item: SearchResultItem; onClick: 
             <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" />
           </div>
         ) : (
-          <div className="flex-shrink-0 w-[105px] sm:w-[120px] aspect-[2/3] bg-chip flex items-center justify-center">
+          <div className="flex-shrink-0 w-[125px] sm:w-[145px] aspect-[2/3] bg-chip rounded-l-xl flex items-center justify-center">
             <svg className="w-8 h-8 text-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16m10-16v16M3 6a1 1 0 011-1h1a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V6zm4 0a1 1 0 011-1h1a1 1 0 011 1v12a1 1 0 01-1 1h-1a1 1 0 01-1-1V6zm8 0a1 1 0 011-1h1a1 1 0 011 1v12a1 1 0 01-1 1h-1a1 1 0 01-1-1V6zm4 0a1 1 0 011-1h1a1 1 0 011 1v12a1 1 0 01-1 1h-1a1 1 0 01-1-1V6z" />
             </svg>
           </div>
         )}
 
-        <div className="p-2.5 flex flex-col flex-grow min-w-0">
+        <div className="p-3 flex flex-col flex-grow min-w-0 justify-between">
           <div className="flex-grow">
-            <h3 className="font-semibold text-sm text-content mb-1.5 line-clamp-2" title={item.name}>
+            <h3 className="font-semibold text-sm sm:text-base text-content mb-1.5 line-clamp-2 sm:line-clamp-3 leading-snug" title={item.name}>
               {item.name}
             </h3>
-            <div className="flex flex-wrap gap-1 mb-1.5">
-              {item.typeName && <span className="tag bg-accent/15 text-accent">{item.typeName}</span>}
-              {item.year && <span className="tag bg-purple-500/15 text-purple-600 dark:text-purple-300">{item.year}</span>}
+            <div className="flex flex-wrap gap-1 mb-2">
+              {item.typeName && <span className="tag bg-accent/15 text-accent font-medium">{item.typeName}</span>}
+              {item.year && <span className="tag bg-purple-500/15 text-purple-600 dark:text-purple-300 font-medium">{item.year}</span>}
             </div>
-            <p className="text-xs text-muted line-clamp-2 mb-2">{formatRemarks(item.remarks) || 'No description available'}</p>
+            <p className="text-xs text-muted line-clamp-2 sm:line-clamp-3 mb-2 leading-relaxed">{formatRemarks(item.remarks) || 'No description available'}</p>
           </div>
-          <div className="flex items-center justify-between mt-auto pt-1.5 border-t border-line">
-            <span className="tag bg-chip text-muted truncate max-w-[80%]">{item.sourceName}</span>
+          <div className="flex items-center justify-between mt-auto pt-2 border-t border-line">
+            <span className="tag bg-chip text-muted truncate max-w-[80%] font-medium">{item.sourceName}</span>
           </div>
         </div>
       </div>
@@ -391,7 +391,7 @@ export function DoubanCard({ item, onClick }: { item: { title: string; cover: st
 
   return (
     <div
-      className="card cursor-pointer hover:scale-[1.03] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+      className="card cursor-pointer hover:scale-[1.03] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 transition-all"
       role="button"
       tabIndex={0}
       onClick={onClick}
@@ -403,7 +403,7 @@ export function DoubanCard({ item, onClick }: { item: { title: string; cover: st
         }
       }}
     >
-      <div className="relative aspect-[2/3] bg-chip">
+      <div className="relative aspect-[2/3] bg-chip rounded-t-xl overflow-hidden">
         {item.cover && !imgFailed ? (
           <SmartImage
             url={item.cover}
@@ -421,13 +421,13 @@ export function DoubanCard({ item, onClick }: { item: { title: string; cover: st
           </div>
         )}
         {item.rating && (
-          <span className={cn('absolute top-1.5 right-1.5 tag bg-black/70 text-rating font-medium')}>
+          <span className={cn('absolute top-1.5 right-1.5 tag bg-black/75 text-rating font-bold shadow-sm')}>
             ★ {item.rating}
           </span>
         )}
       </div>
-      <div className="p-2">
-        <div className="text-xs font-medium text-content truncate" title={item.title}>
+      <div className="p-2.5">
+        <div className="text-xs sm:text-sm font-medium text-content line-clamp-2 leading-snug" title={item.title}>
           {item.title}
         </div>
       </div>

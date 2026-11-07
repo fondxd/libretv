@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/client-api';
 import { useAppStore } from '@/lib/store';
@@ -8,8 +8,32 @@ import { cn } from '@/lib/utils';
 import type { DoubanItem } from '@/lib/types';
 import { DoubanCard } from './video-card';
 
-const MOVIE_TAGS = ['Popular', 'Latest', 'Classics', 'Top Rated', 'Hidden Gems', 'Chinese', 'Western', 'Korean', 'Japanese', 'Anime'];
-const TV_TAGS = ['Popular', 'US Drama', 'UK Drama', 'K-Drama', 'J-Drama', 'C-Drama', 'HK Drama', 'Anime', 'Variety', 'Documentary'];
+const MOVIE_TAGS: { label: string; query: string }[] = [
+  { label: 'Popular', query: '热门' },
+  { label: 'Latest', query: '最新' },
+  { label: 'Classics', query: '经典' },
+  { label: 'Top Rated', query: '豆瓣高分' },
+  { label: 'Hidden Gems', query: '冷门佳片' },
+  { label: 'Chinese', query: '华语' },
+  { label: 'Western', query: '欧美' },
+  { label: 'Korean', query: '韩国' },
+  { label: 'Japanese', query: '日本' },
+  { label: 'Anime', query: '日本动画' },
+];
+
+const TV_TAGS: { label: string; query: string }[] = [
+  { label: 'Popular', query: '热门' },
+  { label: 'US Drama', query: '美剧' },
+  { label: 'UK Drama', query: '英剧' },
+  { label: 'K-Drama', query: '韩剧' },
+  { label: 'J-Drama', query: '日剧' },
+  { label: 'C-Drama', query: '国产剧' },
+  { label: 'HK Drama', query: '港剧' },
+  { label: 'Anime', query: '日本动画' },
+  { label: 'Variety', query: '综艺' },
+  { label: 'Documentary', query: '纪录片' },
+];
+
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export function RecommendSection({ onPick }: { onPick: (title: string) => void }) {
@@ -24,24 +48,41 @@ export function RecommendSection({ onPick }: { onPick: (title: string) => void }
 
 function DoubanView({ onPick }: { onPick: (title: string) => void }) {
   const [type, setType] = useState<'movie' | 'tv'>('movie');
-  const [tag, setTag] = useState('Popular');
-
-  const query = useQuery({
-    queryKey: ['douban', type, tag],
-    queryFn: ({ signal }) => api.douban(type, tag, 0, 50, signal),
-  });
+  const [selectedTag, setSelectedTag] = useState('Popular');
+  const [page, setPage] = useState(1);
+  const pageSize = 40;
+  const sectionRef = useRef<HTMLElement>(null);
 
   const tags = type === 'movie' ? MOVIE_TAGS : TV_TAGS;
+  const currentTagQuery = tags.find((t) => t.label === selectedTag)?.query ?? '热门';
+
+  const query = useQuery({
+    queryKey: ['douban', type, currentTagQuery, page],
+    queryFn: ({ signal }) => api.douban(type, currentTagQuery, (page - 1) * pageSize, pageSize, signal),
+  });
+
   const items = query.data?.items ?? [];
 
   const switchType = (t: 'movie' | 'tv') => {
     if (t === type) return;
     setType(t);
-    setTag('Popular');
+    setSelectedTag('Popular');
+    setPage(1);
+  };
+
+  const switchTag = (label: string) => {
+    if (label === selectedTag) return;
+    setSelectedTag(label);
+    setPage(1);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return (
-    <section aria-label="Featured Recommendations">
+    <section ref={sectionRef} aria-label="Featured Recommendations">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="flex bg-chip rounded-lg p-0.5">
@@ -53,19 +94,20 @@ function DoubanView({ onPick }: { onPick: (title: string) => void }) {
             </TypeButton>
           </div>
         </div>
+        <span className="text-xs text-faint">Page {page}</span>
       </div>
 
       <div className="flex flex-wrap gap-1.5 mb-4">
         {tags.map((t) => (
           <button
-            key={t}
+            key={t.label}
             className={cn(
               'px-2.5 py-1 rounded-full text-xs transition-colors',
-              t === tag ? 'bg-accent text-on-accent' : 'bg-chip text-muted hover:text-content hover:bg-hover'
+              t.label === selectedTag ? 'bg-accent text-accent-contrast font-medium' : 'bg-chip text-muted hover:text-content hover:bg-hover'
             )}
-            onClick={() => setTag(t)}
+            onClick={() => switchTag(t.label)}
           >
-            {t}
+            {t.label}
           </button>
         ))}
       </div>
@@ -77,11 +119,41 @@ function DoubanView({ onPick }: { onPick: (title: string) => void }) {
       ) : items.length === 0 ? (
         <p className="text-center text-sm text-faint py-8">No recommendations available in this category</p>
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5">
-          {items.map((item) => (
-            <DoubanCard key={item.id} item={item} onClick={() => onPick(item.title)} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+            {items.map((item) => (
+              <DoubanCard key={item.id} item={item} onClick={() => onPick(item.title)} />
+            ))}
+          </div>
+
+          {/* Douban Pagination Controls */}
+          <div className="flex items-center justify-between gap-3 mt-6 pt-3 border-t border-line text-xs">
+            <span className="text-faint">
+              Page <strong className="text-content">{page}</strong> · Showing <strong className="text-content">{items.length}</strong> titles
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1 || query.isFetching}
+                onClick={() => handlePageChange(page - 1)}
+                className="btn-ghost btn-sm disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                ‹ Previous
+              </button>
+              <span className="px-2.5 py-1 rounded-md bg-chip text-content font-bold border border-line">
+                {page}
+              </span>
+              <button
+                type="button"
+                disabled={items.length < pageSize || query.isFetching}
+                onClick={() => handlePageChange(page + 1)}
+                className="btn-ghost btn-sm disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Next ›
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </section>
   );

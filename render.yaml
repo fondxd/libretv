@@ -9,5 +9,7 @@ services:
         value: "admin123"
       - key: DEFAULT_RECOMMEND_SOURCE
         value: "douban"
+      - key: DEFAULT_SUBSCRIPTIONS
+        value: '["https://raw.githubusercontent.com/fondXD/libretv/main/sources.json"]'
       - key: LIVE_ALLOW_PRIVATE
         value: "0"

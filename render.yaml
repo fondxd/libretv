@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: libretv
+    env: docker
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: PASSWORD
+        value: "admin123"
+      - key: DEFAULT_RECOMMEND_SOURCE
+        value: "douban"
+      - key: LIVE_ALLOW_PRIVATE
+        value: "0"

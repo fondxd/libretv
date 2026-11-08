@@ -647,13 +647,24 @@ export default function SingaporeStreamingPage() {
               <p className="text-[11px] text-muted leading-normal">
                 Use TiviMate, OTT Navigator, IPTV Smarters, Kodi, or VLC on your Android TV or phone.
               </p>
-              <button
-                onClick={() => setShowApiModal(true)}
-                className="btn-primary w-full text-xs py-1.5 flex items-center justify-center gap-1.5"
-              >
-                <span>📺</span>
-                <span>Get Android TV & API Setup</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowApiModal(true)}
+                  className="btn-primary flex-1 text-xs py-1.5 flex items-center justify-center gap-1.5"
+                >
+                  <span>📺</span>
+                  <span>IPTV / API Setup</span>
+                </button>
+                <a
+                  href="/libretv.apk"
+                  download="LibreTV.apk"
+                  className="btn-secondary text-xs py-1.5 px-3 flex items-center justify-center gap-1.5 border-line"
+                  title="Download Android APK (3.2 MB)"
+                >
+                  <span>📥</span>
+                  <span>APK</span>
+                </a>
+              </div>
             </div>
 
             <div className="p-3 bg-surface rounded-lg border border-line text-xs space-y-1.5 text-faint">
@@ -783,6 +794,32 @@ export default function SingaporeStreamingPage() {
               >
                 ✕
               </button>
+            </div>
+
+            {/* Direct APK Download Banner */}
+            <div className="p-4 bg-gradient-to-r from-accent/20 to-accent/5 border border-accent/40 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center text-xl">
+                  🤖
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-content flex items-center gap-2">
+                    LibreTV Android APK
+                    <span className="text-[10px] bg-accent text-accent-contrast px-1.5 py-0.2 rounded font-mono">v1.0 • 3.2 MB</span>
+                  </h3>
+                  <p className="text-xs text-muted">
+                    Install directly on Android TV, Google TV, or any Android device.
+                  </p>
+                </div>
+              </div>
+              <a
+                href="/libretv.apk"
+                download="LibreTV.apk"
+                className="btn-primary text-xs py-2 px-4 flex items-center gap-2 shadow-lg whitespace-nowrap"
+              >
+                <span>📥</span>
+                <span>Download APK</span>
+              </a>
             </div>
 
             {/* Endpoints Quick Copy Grid */}

@@ -22,16 +22,25 @@ export default function SingaporeStreamingPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
+  // Android TV / API Modal
+  const [showApiModal, setShowApiModal] = useState<boolean>(false);
+  const [copiedField, setCopiedField] = useState<string>('');
+  const [apiOrigin, setApiOrigin] = useState<string>('https://libretv-stream.onrender.com');
+  const [activeApiTab, setActiveApiTab] = useState<'tivimate' | 'vlc' | 'dev'>('tivimate');
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const playerWrapperRef = useRef<HTMLDivElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const shakaRef = useRef<any>(null);
 
-  // Check if Shaka Player was already loaded (e.g. client route transitions)
+  // Set window origin on client
   useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).shaka) {
-      setShakaReady(true);
+    if (typeof window !== 'undefined') {
+      setApiOrigin(window.location.origin);
+      if ((window as any).shaka) {
+        setShakaReady(true);
+      }
     }
   }, []);
 
@@ -270,12 +279,10 @@ export default function SingaporeStreamingPage() {
 
       if (preferMpd) {
         if (!shakaReady && typeof window !== 'undefined' && !(window as any).shaka) {
-          // If Shaka hasn't finished loading yet and Alt HLS exists, play Alt HLS first
           if (currentChannel.altHls) {
             playHls(currentChannel.altHls, videoEl);
             return;
           }
-          // Otherwise wait for script load
           return;
         }
 
@@ -380,6 +387,14 @@ export default function SingaporeStreamingPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [channels, currentChannel]);
 
+  // Copy helper
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(''), 2000);
+    });
+  };
+
   // Filter channels by category and search
   const filteredChannels = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -395,6 +410,10 @@ export default function SingaporeStreamingPage() {
   }, [channels, category, search]);
 
   const currentEpg = currentChannel.epgId ? epgData[currentChannel.epgId] : undefined;
+
+  const m3uUrl = `${apiOrigin}/api/singapore/playlist.m3u`;
+  const epgXmlUrl = `${apiOrigin}/api/singapore/epg.xml`;
+  const jsonApiUrl = `${apiOrigin}/api/singapore/channels`;
 
   return (
     <div className="min-h-screen flex flex-col bg-surface text-content">
@@ -604,7 +623,7 @@ export default function SingaporeStreamingPage() {
             </div>
           </div>
 
-          {/* Quick Info & Tips */}
+          {/* Quick Info & Tips + Android TV Setup */}
           <div className="bg-surface-raised border border-line rounded-xl p-4 flex flex-col space-y-3">
             <h3 className="font-semibold text-sm text-content flex items-center gap-2">
               <span>🇸🇬</span> Singapore Free-to-Air & FAST Channels
@@ -614,6 +633,29 @@ export default function SingaporeStreamingPage() {
               Vasantham, CNA, FAST 24/7 entertainment, and crystal-clear Singapore AAC radio
               stations.
             </p>
+
+            {/* Android TV & Mobile Setup Callout */}
+            <div className="p-3 bg-accent/10 border border-accent/30 rounded-lg space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-accent flex items-center gap-1.5">
+                  <span>📱</span> Android TV & Mobile API
+                </span>
+                <span className="text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded font-mono">
+                  M3U / EPG
+                </span>
+              </div>
+              <p className="text-[11px] text-muted leading-normal">
+                Use TiviMate, OTT Navigator, IPTV Smarters, Kodi, or VLC on your Android TV or phone.
+              </p>
+              <button
+                onClick={() => setShowApiModal(true)}
+                className="btn-primary w-full text-xs py-1.5 flex items-center justify-center gap-1.5"
+              >
+                <span>📺</span>
+                <span>Get Android TV & API Setup</span>
+              </button>
+            </div>
+
             <div className="p-3 bg-surface rounded-lg border border-line text-xs space-y-1.5 text-faint">
               <p>
                 📺 <strong>Full Screen:</strong> Press <kbd className="px-1 py-0.5 bg-surface-raised rounded border border-line">F</kbd> or double-click video
@@ -623,9 +665,6 @@ export default function SingaporeStreamingPage() {
               </p>
               <p>
                 🔇 <strong>Mute / Unmute:</strong> Press <kbd className="px-1 py-0.5 bg-surface-raised rounded border border-line">M</kbd>
-              </p>
-              <p>
-                📱 <strong>Mobile & TV:</strong> Runs as full-screen PWA on all devices
               </p>
               <p>
                 📻 <strong>Radio:</strong> 24/7 background audio without screen lock
@@ -662,15 +701,23 @@ export default function SingaporeStreamingPage() {
             ))}
           </div>
 
-          {/* Search Box */}
-          <div className="w-full sm:w-64">
+          {/* Search Box & Quick API Button */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <input
               type="text"
               placeholder="Search Singapore channels..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input w-full h-8 text-xs"
+              className="input w-full sm:w-60 h-8 text-xs"
             />
+            <button
+              onClick={() => setShowApiModal(true)}
+              className="btn-secondary h-8 px-2.5 text-xs whitespace-nowrap flex items-center gap-1 border-line"
+              title="Android TV & API Setup"
+            >
+              <span>📺</span>
+              <span className="hidden sm:inline">IPTV API</span>
+            </button>
           </div>
         </div>
 
@@ -715,6 +762,172 @@ export default function SingaporeStreamingPage() {
           })}
         </div>
       </main>
+
+      {/* Android TV & IPTV API Integration Modal */}
+      {showApiModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-surface-raised border border-line rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-content flex items-center gap-2">
+                  <span>📺</span> Android TV & Mobile IPTV Integration
+                </h2>
+                <p className="text-xs text-muted mt-1">
+                  Connect Singapore Live TV & Radio directly into your Android TV or Android IPTV player.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowApiModal(false)}
+                className="text-muted hover:text-content p-1.5 rounded-lg hover:bg-hover text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Endpoints Quick Copy Grid */}
+            <div className="space-y-3">
+              {/* M3U Playlist */}
+              <div className="p-3 bg-surface rounded-xl border border-line space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-content flex items-center gap-1.5">
+                    <span className="text-accent">●</span> M3U Playlist URL (TiviMate, Kodi, VLC, OTT)
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(m3uUrl, 'm3u')}
+                    className="btn-primary btn-sm text-[11px] py-0.5 px-2.5 h-6"
+                  >
+                    {copiedField === 'm3u' ? 'Copied! ✓' : 'Copy URL'}
+                  </button>
+                </div>
+                <p className="text-[11px] font-mono text-faint break-all bg-surface-raised p-2 rounded border border-line select-all">
+                  {m3uUrl}
+                </p>
+              </div>
+
+              {/* XMLTV EPG */}
+              <div className="p-3 bg-surface rounded-xl border border-line space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-content flex items-center gap-1.5">
+                    <span className="text-accent">●</span> XMLTV EPG URL (Electronic TV Guide)
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(epgXmlUrl, 'epg')}
+                    className="btn-secondary btn-sm text-[11px] py-0.5 px-2.5 h-6"
+                  >
+                    {copiedField === 'epg' ? 'Copied! ✓' : 'Copy URL'}
+                  </button>
+                </div>
+                <p className="text-[11px] font-mono text-faint break-all bg-surface-raised p-2 rounded border border-line select-all">
+                  {epgXmlUrl}
+                </p>
+              </div>
+
+              {/* JSON REST API */}
+              <div className="p-3 bg-surface rounded-xl border border-line space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-content flex items-center gap-1.5">
+                    <span className="text-accent">●</span> JSON REST API (Android App Devs / Custom Code)
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(jsonApiUrl, 'json')}
+                    className="btn-secondary btn-sm text-[11px] py-0.5 px-2.5 h-6"
+                  >
+                    {copiedField === 'json' ? 'Copied! ✓' : 'Copy URL'}
+                  </button>
+                </div>
+                <p className="text-[11px] font-mono text-faint break-all bg-surface-raised p-2 rounded border border-line select-all">
+                  {jsonApiUrl}
+                </p>
+              </div>
+            </div>
+
+            {/* Instruction Tabs */}
+            <div className="space-y-3 pt-2 border-t border-line">
+              <div className="flex items-center gap-2">
+                {[
+                  { id: 'tivimate', label: 'TiviMate (Android TV)' },
+                  { id: 'vlc', label: 'VLC / OTT Navigator' },
+                  { id: 'dev', label: 'Android Developer (ExoPlayer)' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveApiTab(tab.id as any)}
+                    className={cn(
+                      'px-3 py-1 text-xs rounded-lg font-medium transition-colors',
+                      activeApiTab === tab.id
+                        ? 'bg-accent text-accent-contrast shadow-sm'
+                        : 'bg-surface text-muted hover:text-content border border-line'
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab Contents */}
+              <div className="p-3 bg-surface rounded-xl border border-line text-xs text-muted leading-relaxed space-y-2">
+                {activeApiTab === 'tivimate' && (
+                  <div className="space-y-1.5">
+                    <p className="font-semibold text-content">How to setup on TiviMate on Android TV:</p>
+                    <ol className="list-decimal list-inside space-y-1 pl-1 text-[11px]">
+                      <li>Open <strong>TiviMate</strong> on your Android TV device.</li>
+                      <li>Go to <strong>Settings</strong> → <strong>Playlists</strong> → <strong>Add playlist</strong>.</li>
+                      <li>Select <strong>M3U playlist</strong> → enter the M3U URL above.</li>
+                      <li>In <strong>TV guide (EPG)</strong>, enter the XMLTV EPG URL above.</li>
+                      <li>Click <strong>Done</strong>. Channels will appear with logos and program schedule!</li>
+                    </ol>
+                  </div>
+                )}
+
+                {activeApiTab === 'vlc' && (
+                  <div className="space-y-1.5">
+                    <p className="font-semibold text-content">How to stream in VLC or OTT Navigator:</p>
+                    <ol className="list-decimal list-inside space-y-1 pl-1 text-[11px]">
+                      <li>Open <strong>VLC for Android</strong> on your phone or Android TV.</li>
+                      <li>Tap the <strong>More</strong> tab at the bottom → <strong>New stream</strong>.</li>
+                      <li>Paste the M3U Playlist URL and press enter.</li>
+                      <li>All channels (Free-to-Air, FAST movies, and Radio) will load into your playlist immediately.</li>
+                    </ol>
+                  </div>
+                )}
+
+                {activeApiTab === 'dev' && (
+                  <div className="space-y-2">
+                    <p className="font-semibold text-content">How to use in Kotlin / Android ExoPlayer:</p>
+                    <pre className="p-2.5 bg-black/60 rounded border border-line text-[11px] font-mono text-faint overflow-x-auto">
+{`// 1. Fetch channel list:
+val url = URL("${jsonApiUrl}")
+val json = url.readText()
+
+// 2. Play stream in ExoPlayer (HLS or Alt HLS):
+val player = ExoPlayer.Builder(context).build()
+val mediaItem = MediaItem.Builder()
+    .setUri("${apiOrigin}/api/singapore/hls/ch8")
+    .setMimeType(MimeTypes.APPLICATION_M3U8)
+    .build()
+
+player.setMediaItem(mediaItem)
+player.prepare()
+player.play()`}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer Close */}
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setShowApiModal(false)}
+                className="btn-primary btn-sm px-4"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

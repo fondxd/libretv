@@ -1,12 +1,26 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { SINGAPORE_CHANNELS } from '@/lib/singapore-channels';
+import { generateSingaporeM3u } from '@/lib/singapore-m3u';
 
 export const runtime = 'nodejs';
 
 let epgCache = {
-  data: {} as Record<string, { title: string; desc: string; icon: string; progress: number; timeFormatted: string }>,
+  data: {} as Record<
+    string,
+    { title: string; desc: string; icon: string; progress: number; timeFormatted: string }
+  >,
   lastFetched: 0,
 };
+
+function getBaseUrl(req: Request): string {
+  const host =
+    req.headers.get('x-forwarded-host') ||
+    req.headers.get('host') ||
+    'libretv-stream.onrender.com';
+  const proto =
+    req.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+  return `${proto}://${host}`;
+}
 
 async function fetchEPG() {
   const now = Date.now();
@@ -15,9 +29,12 @@ async function fetchEPG() {
   }
 
   try {
-    const res = await fetch('https://raw.githubusercontent.com/dbghelp/mewatch-EPG/refs/heads/main/mewatch.xml', {
-      next: { revalidate: 900 },
-    });
+    const res = await fetch(
+      'https://raw.githubusercontent.com/dbghelp/mewatch-EPG/refs/heads/main/mewatch.xml',
+      {
+        next: { revalidate: 900 },
+      }
+    );
     if (!res.ok) return epgCache.data;
     const rawXml = await res.text();
 
@@ -33,22 +50,37 @@ async function fetchEPG() {
     };
 
     const currentTime = Date.now();
-    const regex = /<programme channel="([^"]+)" start="([^"]+)" stop="([^"]+)">\s*<title>([\s\S]*?)<\/title>(?:\s*<desc>([\s\S]*?)<\/desc>)?(?:\s*<icon src="([^"]+)" \/>)?/g;
+    const regex =
+      /<programme channel="([^"]+)" start="([^"]+)" stop="([^"]+)">\s*<title>([\s\S]*?)<\/title>(?:\s*<desc>([\s\S]*?)<\/desc>)?(?:\s*<icon src="([^"]+)" \/>)?/g;
     let match;
-    const programs: Record<string, { title: string; desc: string; icon: string; progress: number; timeFormatted: string }> = {};
+    const programs: Record<
+      string,
+      { title: string; desc: string; icon: string; progress: number; timeFormatted: string }
+    > = {};
 
     while ((match = regex.exec(rawXml)) !== null) {
       const channelId = match[1];
       const startTime = parseTime(match[2]);
       const stopTime = parseTime(match[3]);
-      const title = (match[4] || '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
-      const desc = (match[5] || '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+      const title = (match[4] || '')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .trim();
+      const desc = (match[5] || '')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .trim();
       const icon = match[6] || '';
 
       if (currentTime >= startTime && currentTime <= stopTime) {
         const totalDuration = stopTime - startTime;
         const elapsed = currentTime - startTime;
-        const progress = Math.min(100, Math.max(0, Math.round((elapsed / totalDuration) * 100)));
+        const progress = Math.min(
+          100,
+          Math.max(0, Math.round((elapsed / totalDuration) * 100))
+        );
 
         programs[channelId] = {
           title,
@@ -69,11 +101,65 @@ async function fetchEPG() {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const sp = req.nextUrl.searchParams;
+  const format = sp.get('format');
+  const baseUrl = getBaseUrl(req);
+
+  // M3U Playlist export for IPTV apps (e.g. /api/singapore?format=m3u)
+  if (format === 'm3u') {
+    const mode = (sp.get('mode') as 'universal' | 'kodi' | 'dash') || 'universal';
+    const category = sp.get('category') || undefined;
+    const includeRadio = sp.get('radio') !== '0';
+    const m3uText = generateSingaporeM3u(baseUrl, {
+      mode,
+      category,
+      includeRadio,
+    });
+    return new NextResponse(m3uText, {
+      status: 200,
+      headers: {
+        'Content-Type': 'audio/x-mpegurl; charset=utf-8',
+        'Content-Disposition': 'inline; filename="singapore-tv.m3u"',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=300',
+      },
+    });
+  }
+
+  // XMLTV EPG export
+  if (format === 'xml') {
+    return NextResponse.redirect(`${baseUrl}/api/singapore/epg.xml`);
+  }
+
+  // Default JSON API response
   const epg = await fetchEPG();
-  return NextResponse.json({
-    success: true,
-    channels: SINGAPORE_CHANNELS,
-    epg,
-  });
+  const enrichedChannels = SINGAPORE_CHANNELS.map((c) => ({
+    ...c,
+    altHls: c.altHls
+      ? c.altHls.startsWith('/')
+        ? `${baseUrl}${c.altHls}`
+        : c.altHls
+      : undefined,
+  }));
+
+  return NextResponse.json(
+    {
+      success: true,
+      endpoints: {
+        playlist_m3u: `${baseUrl}/api/singapore/playlist.m3u`,
+        epg_xml: `${baseUrl}/api/singapore/epg.xml`,
+        channels_json: `${baseUrl}/api/singapore/channels`,
+        epg_json: `${baseUrl}/api/singapore/epg`,
+      },
+      channels: enrichedChannels,
+      epg,
+    },
+    {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=60',
+      },
+    }
+  );
 }

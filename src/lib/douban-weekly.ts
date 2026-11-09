@@ -50,6 +50,8 @@ interface DoubanWeeklyRaw {
   rating?: number;
   cover_proxy?: string;
   cover?: string;
+  description?: string;
+  card_subtitle?: string;
 }
 
 interface BaiduTeleplayRaw {
@@ -73,6 +75,8 @@ export function doubanWeeklyToItem(raw: DoubanWeeklyRaw, isTv: boolean): DoubanI
     title: raw.title,
     cover,
     rating: raw.rating && raw.rating > 0 ? String(raw.rating) : undefined,
+    desc: raw.description,
+    subtitle: raw.card_subtitle,
     isTv,
   };
 }

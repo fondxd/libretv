@@ -61,6 +61,8 @@ export interface DoubanItem {
   cover: string;
   rating?: string;
   isTv?: boolean;
+  desc?: string;
+  subtitle?: string;
 }
 
 export interface SourceSearchOutcome {

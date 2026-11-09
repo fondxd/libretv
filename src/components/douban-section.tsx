@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/client-api';
 import { useAppStore } from '@/lib/store';
@@ -61,7 +61,21 @@ function DoubanView({ onPick }: { onPick: (title: string) => void }) {
     queryFn: ({ signal }) => api.douban(type, currentTagQuery, (page - 1) * pageSize, pageSize, signal),
   });
 
+  const [sortMode, setSortMode] = useState<'default' | 'rating_desc' | 'name_asc'>('default');
+
   const items = query.data?.items ?? [];
+
+  const sortedItems = useMemo(() => {
+    if (sortMode === 'default') return items;
+    const copy = [...items];
+    if (sortMode === 'rating_desc') {
+      return copy.sort((a, b) => (parseFloat(b.rating || '0') || 0) - (parseFloat(a.rating || '0') || 0));
+    }
+    if (sortMode === 'name_asc') {
+      return copy.sort((a, b) => a.title.localeCompare(b.title, 'zh-Hans-CN', { sensitivity: 'base' }));
+    }
+    return copy;
+  }, [items, sortMode]);
 
   const switchType = (t: 'movie' | 'tv') => {
     if (t === type) return;
@@ -97,7 +111,7 @@ function DoubanView({ onPick }: { onPick: (title: string) => void }) {
         <span className="text-xs text-faint">Page {page}</span>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 mb-4">
+      <div className="flex flex-wrap gap-1.5 mb-3">
         {tags.map((t) => (
           <button
             key={t.label}
@@ -112,6 +126,37 @@ function DoubanView({ onPick }: { onPick: (title: string) => void }) {
         ))}
       </div>
 
+      {/* Home Movie Sorting Bar */}
+      {items.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3 px-3 py-1.5 bg-surface-raised border border-line rounded-lg text-xs">
+          <div className="flex items-center gap-1.5 text-faint">
+            <span>↕️</span>
+            <span className="font-medium text-muted">Sort:</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {[
+              { id: 'default', label: 'Recommended' },
+              { id: 'rating_desc', label: '★ Highest Rating' },
+              { id: 'name_asc', label: '🔤 Title A-Z' },
+            ].map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setSortMode(s.id as any)}
+                className={cn(
+                  'px-2 py-0.5 rounded text-xs font-medium transition-colors',
+                  sortMode === s.id
+                    ? 'bg-accent text-accent-contrast shadow-sm'
+                    : 'bg-chip text-muted hover:text-content hover:bg-hover'
+                )}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {query.isError ? (
         <p className="text-center text-sm text-faint py-8">Failed to load recommendations. Please try again later or disable in Settings.</p>
       ) : query.isLoading ? (
@@ -120,8 +165,8 @@ function DoubanView({ onPick }: { onPick: (title: string) => void }) {
         <p className="text-center text-sm text-faint py-8">No recommendations available in this category</p>
       ) : (
         <>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-            {items.map((item) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {sortedItems.map((item) => (
               <DoubanCard key={item.id} item={item} onClick={() => onPick(item.title)} />
             ))}
           </div>
@@ -213,6 +258,7 @@ const HOT_LISTS = [
 
 function HotListView({ onPick }: { onPick: (title: string) => void }) {
   const [listId, setListId] = useState(HOT_LISTS[0].id);
+  const [sortMode, setSortMode] = useState<'default' | 'rating_desc' | 'name_asc'>('default');
 
   const query = useQuery({
     queryKey: ['hot-list', listId],
@@ -221,9 +267,21 @@ function HotListView({ onPick }: { onPick: (title: string) => void }) {
 
   const items = query.data?.items ?? [];
 
+  const sortedItems = useMemo(() => {
+    if (sortMode === 'default') return items;
+    const copy = [...items];
+    if (sortMode === 'rating_desc') {
+      return copy.sort((a, b) => (parseFloat(b.rating || '0') || 0) - (parseFloat(a.rating || '0') || 0));
+    }
+    if (sortMode === 'name_asc') {
+      return copy.sort((a, b) => a.title.localeCompare(b.title, 'zh-Hans-CN', { sensitivity: 'base' }));
+    }
+    return copy;
+  }, [items, sortMode]);
+
   return (
     <section aria-label="Trending Charts">
-      <div className="flex flex-wrap gap-1.5 mb-4">
+      <div className="flex flex-wrap gap-1.5 mb-3">
         {HOT_LISTS.map((l) => (
           <ChipButton key={l.id} active={listId === l.id} onClick={() => setListId(l.id)}>
             {l.label}
@@ -231,13 +289,44 @@ function HotListView({ onPick }: { onPick: (title: string) => void }) {
         ))}
       </div>
 
+      {/* Home Movie Sorting Bar */}
+      {items.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3 px-3 py-1.5 bg-surface-raised border border-line rounded-lg text-xs">
+          <div className="flex items-center gap-1.5 text-faint">
+            <span>↕️</span>
+            <span className="font-medium text-muted">Sort:</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {[
+              { id: 'default', label: 'Trending Rank' },
+              { id: 'rating_desc', label: '★ Highest Rating' },
+              { id: 'name_asc', label: '🔤 Title A-Z' },
+            ].map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setSortMode(s.id as any)}
+                className={cn(
+                  'px-2 py-0.5 rounded text-xs font-medium transition-colors',
+                  sortMode === s.id
+                    ? 'bg-accent text-accent-contrast shadow-sm'
+                    : 'bg-chip text-muted hover:text-content hover:bg-hover'
+                )}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {query.isError ? (
         <p className="text-center text-sm text-faint py-8">Failed to load recommendations. Please try again later or disable in Settings.</p>
       ) : query.isLoading ? (
         <GridSkeleton />
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5">
-          {items.map((item) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          {sortedItems.map((item) => (
             <DoubanCard key={item.id} item={item} onClick={() => onPick(item.title)} />
           ))}
         </div>

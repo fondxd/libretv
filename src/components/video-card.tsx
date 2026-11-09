@@ -418,15 +418,23 @@ export function VideoCard({ item, onClick }: { item: SearchResultItem; onClick: 
 }
 
 /** 豆瓣推荐卡片（无来源徽章，点击直接搜索） */
-export function DoubanCard({ item, onClick }: { item: { title: string; cover: string; rating?: string }; onClick: () => void }) {
+export function DoubanCard({
+  item,
+  onClick,
+}: {
+  item: { title: string; cover: string; rating?: string; desc?: string; subtitle?: string };
+  onClick: () => void;
+}) {
   const imageProxyMode = useAppStore((s) => s.imageProxyMode);
   const customImageProxy = useAppStore((s) => s.customImageProxy);
   const [imgFailed, setImgFailed] = useState(false);
   useEffect(() => setImgFailed(false), [item.cover]);
 
+  const descText = item.desc || item.subtitle;
+
   return (
     <div
-      className="card cursor-pointer hover:scale-[1.03] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 transition-all"
+      className="card cursor-pointer hover:scale-[1.03] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 transition-all flex flex-col h-full"
       role="button"
       tabIndex={0}
       onClick={onClick}
@@ -438,7 +446,7 @@ export function DoubanCard({ item, onClick }: { item: { title: string; cover: st
         }
       }}
     >
-      <div className="relative aspect-[2/3] bg-chip rounded-t-xl overflow-hidden">
+      <div className="relative aspect-[2/3] bg-chip rounded-t-xl overflow-hidden shrink-0">
         {item.cover && !imgFailed ? (
           <SmartImage
             url={item.cover}
@@ -461,9 +469,16 @@ export function DoubanCard({ item, onClick }: { item: { title: string; cover: st
           </span>
         )}
       </div>
-      <div className="p-2.5">
-        <div className="text-xs sm:text-sm font-medium text-content line-clamp-2 leading-snug" title={item.title}>
-          {item.title}
+      <div className="p-2.5 flex flex-col flex-1 justify-between">
+        <div>
+          <div className="text-xs sm:text-sm font-semibold text-content line-clamp-1 leading-snug mb-1" title={item.title}>
+            {item.title}
+          </div>
+          {descText && (
+            <p className="text-[11px] text-muted line-clamp-2 leading-relaxed" title={descText}>
+              {descText}
+            </p>
+          )}
         </div>
       </div>
     </div>

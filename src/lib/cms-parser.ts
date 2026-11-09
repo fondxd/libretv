@@ -30,6 +30,7 @@ export function parseSearchList(
   }
   return (Array.isArray(list) ? list : []).map((item) => {
     const vod = item as Record<string, unknown>;
+    const rawDesc = vod.vod_content || vod.vod_blurb;
     return {
       sourceKey: source.key,
       sourceName: source.name,
@@ -40,6 +41,11 @@ export function parseSearchList(
       year: typeof vod.vod_year === 'string' ? vod.vod_year : undefined,
       area: typeof vod.vod_area === 'string' ? vod.vod_area : undefined,
       remarks: typeof vod.vod_remarks === 'string' ? vod.vod_remarks : undefined,
+      desc: cleanText(rawDesc),
+      actor: str(vod.vod_actor),
+      director: str(vod.vod_director),
+      score: str(vod.vod_score),
+      updatedAt: str(vod.vod_time),
       sourceUrl: source.url,
       isAdult: source.isAdult,
     };
@@ -95,7 +101,7 @@ export function parseDetail(
     videoInfo: {
       title: str(vod.vod_name),
       cover: str(vod.vod_pic),
-      desc: str(vod.vod_content),
+      desc: cleanText(vod.vod_content) || cleanText(vod.vod_blurb),
       typeName: str(vod.type_name),
       year: str(vod.vod_year),
       area: str(vod.vod_area),
@@ -107,6 +113,21 @@ export function parseDetail(
       sourceUrl: source.url,
     },
   };
+}
+
+function cleanText(v: unknown): string | undefined {
+  if (typeof v !== 'string') return undefined;
+  // Clean HTML tags, encoded entities, and extra spaces
+  const cleaned = v
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned || undefined;
 }
 
 function str(v: unknown): string | undefined {

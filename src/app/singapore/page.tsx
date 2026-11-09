@@ -13,6 +13,7 @@ export default function SingaporeStreamingPage() {
   const [activeSource, setActiveSource] = useState<string>('default');
   const [category, setCategory] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
+  const [channelSort, setChannelSort] = useState<'default' | 'name_asc' | 'category' | 'language'>('default');
   const [epgData, setEpgData] = useState<
     Record<string, { title: string; desc: string; progress: number; timeFormatted: string }>
   >({});
@@ -395,10 +396,10 @@ export default function SingaporeStreamingPage() {
     });
   };
 
-  // Filter channels by category and search
+  // Filter and sort channels by category, search, and sorting mode
   const filteredChannels = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return channels.filter((c) => {
+    let list = channels.filter((c) => {
       const matchCat = category === 'all' || c.category === category;
       const matchQuery =
         !q ||
@@ -407,7 +408,18 @@ export default function SingaporeStreamingPage() {
         c.description.toLowerCase().includes(q);
       return matchCat && matchQuery;
     });
-  }, [channels, category, search]);
+
+    if (channelSort === 'name_asc') {
+      list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+    } else if (channelSort === 'category') {
+      const catOrder: Record<string, number> = { fta: 1, entertainment: 2, music: 3, sports: 4, kids: 5, radio: 6 };
+      list = [...list].sort((a, b) => (catOrder[a.category] || 99) - (catOrder[b.category] || 99));
+    } else if (channelSort === 'language') {
+      list = [...list].sort((a, b) => a.language.localeCompare(b.language, 'en', { sensitivity: 'base' }));
+    }
+
+    return list;
+  }, [channels, category, search, channelSort]);
 
   const currentEpg = currentChannel.epgId ? epgData[currentChannel.epgId] : undefined;
 
@@ -597,6 +609,26 @@ export default function SingaporeStreamingPage() {
                 )}
               </div>
 
+              {/* Show Synopsis / Program Description */}
+              {(currentEpg?.desc || currentChannel.description) && (
+                <div className="pt-2.5 border-t border-line/60">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[11px] font-semibold text-accent uppercase tracking-wider">
+                      {currentEpg ? 'Live Program Description' : 'Channel Overview'}
+                    </span>
+                    {currentEpg && (
+                      <span className="text-xs text-content font-medium">
+                        • {currentEpg.title}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted leading-relaxed">
+                    {currentEpg?.desc || currentChannel.description}
+                  </p>
+                </div>
+              )}
+
               {/* Source Switcher Pills */}
               {availableSources.length > 1 && (
                 <div className="pt-2 border-t border-line/60 flex items-center gap-2 overflow-x-auto scrollbar-none">
@@ -684,51 +716,83 @@ export default function SingaporeStreamingPage() {
           </div>
         </div>
 
-        {/* Categories & Search Filter */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
-          {/* Category Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {[
-              { id: 'all', label: 'All Channels' },
-              { id: 'fta', label: '🇸🇬 Free-to-Air' },
-              { id: 'entertainment', label: '🎬 Entertainment' },
-              { id: 'music', label: '🎵 Music' },
-              { id: 'sports', label: '⚽ Sports' },
-              { id: 'kids', label: '🧸 Kids' },
-              { id: 'radio', label: '📻 Live Radio' },
-            ].map((tab) => (
+        {/* Categories, Search & Sorting Toolbar */}
+        <div className="space-y-2.5 pt-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            {/* Category Tabs */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {[
+                { id: 'all', label: 'All Channels' },
+                { id: 'fta', label: '🇸🇬 Free-to-Air' },
+                { id: 'entertainment', label: '🎬 Entertainment' },
+                { id: 'music', label: '🎵 Music' },
+                { id: 'sports', label: '⚽ Sports' },
+                { id: 'kids', label: '🧸 Kids' },
+                { id: 'radio', label: '📻 Live Radio' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  className={cn(
+                    'px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
+                    category === tab.id
+                      ? 'bg-accent text-accent-contrast shadow-sm'
+                      : 'bg-surface-raised text-muted hover:text-content hover:bg-hover border border-line'
+                  )}
+                  onClick={() => setCategory(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Search Box & Quick API Button */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <input
+                type="text"
+                placeholder="Search Singapore channels..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="input w-full sm:w-60 h-8 text-xs"
+              />
               <button
-                key={tab.id}
-                className={cn(
-                  'px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
-                  category === tab.id
-                    ? 'bg-accent text-accent-contrast shadow-sm'
-                    : 'bg-surface-raised text-muted hover:text-content hover:bg-hover border border-line'
-                )}
-                onClick={() => setCategory(tab.id)}
+                onClick={() => setShowApiModal(true)}
+                className="btn-secondary h-8 px-2.5 text-xs whitespace-nowrap flex items-center gap-1 border-line"
+                title="Android TV & API Setup"
               >
-                {tab.label}
+                <span>📺</span>
+                <span className="hidden sm:inline">IPTV API</span>
               </button>
-            ))}
+            </div>
           </div>
 
-          {/* Search Box & Quick API Button */}
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <input
-              type="text"
-              placeholder="Search Singapore channels..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input w-full sm:w-60 h-8 text-xs"
-            />
-            <button
-              onClick={() => setShowApiModal(true)}
-              className="btn-secondary h-8 px-2.5 text-xs whitespace-nowrap flex items-center gap-1 border-line"
-              title="Android TV & API Setup"
-            >
-              <span>📺</span>
-              <span className="hidden sm:inline">IPTV API</span>
-            </button>
+          {/* Channel Sorting & Count Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-surface-raised border border-line rounded-xl text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-faint">Channels:</span>
+              <span className="font-semibold text-content">{filteredChannels.length} available</span>
+            </div>
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+              <span className="text-faint whitespace-nowrap mr-1">Sort:</span>
+              {[
+                { id: 'default', label: 'Default' },
+                { id: 'name_asc', label: '🔤 A → Z' },
+                { id: 'category', label: '🎬 Category' },
+                { id: 'language', label: '🌐 Language' },
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setChannelSort(s.id as any)}
+                  className={cn(
+                    'px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap',
+                    channelSort === s.id
+                      ? 'bg-accent text-accent-contrast shadow-sm'
+                      : 'bg-surface text-muted hover:text-content hover:bg-hover border border-line'
+                  )}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -736,10 +800,14 @@ export default function SingaporeStreamingPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 pb-8">
           {filteredChannels.map((channel) => {
             const isActive = currentChannel.id === channel.id;
-            const liveShow =
+            const currentShowTitle =
               channel.epgId && epgData[channel.epgId]
                 ? epgData[channel.epgId].title
                 : channel.tag;
+            const showDesc =
+              channel.epgId && epgData[channel.epgId]?.desc
+                ? epgData[channel.epgId].desc
+                : channel.description;
 
             return (
               <div
@@ -764,7 +832,14 @@ export default function SingaporeStreamingPage() {
                   />
                 </div>
                 <h4 className="text-xs font-semibold text-content line-clamp-1">{channel.name}</h4>
-                <p className="text-[11px] text-faint line-clamp-1 mt-0.5">{liveShow}</p>
+                <p className="text-[11px] text-accent font-medium line-clamp-1 mt-0.5">{currentShowTitle}</p>
+                {/* Description of the show / channel */}
+                <p
+                  className="text-[10px] text-muted line-clamp-2 mt-1 leading-tight text-center"
+                  title={showDesc}
+                >
+                  {showDesc}
+                </p>
                 <span className="mt-2 tag text-[10px] bg-line/60 text-muted px-1.5 py-0.5 rounded">
                   {channel.language}
                 </span>

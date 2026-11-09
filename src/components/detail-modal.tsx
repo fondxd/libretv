@@ -30,6 +30,7 @@ export function DetailModal({ item, onClose }: { item: SearchResultItem | null; 
   const [error, setError] = useState('');
   const [reversed, setReversed] = useState(false);
   const [posterFailed, setPosterFailed] = useState(false);
+  const [showFullDesc, setShowFullDesc] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -187,7 +188,20 @@ export function DetailModal({ item, onClose }: { item: SearchResultItem | null; 
                     </div>
                   )}
                   {info?.desc && (
-                    <p className="text-sm text-muted leading-relaxed line-clamp-3">{info.desc}</p>
+                    <div className="space-y-1">
+                      <p className={cn('text-sm text-muted leading-relaxed', !showFullDesc && 'line-clamp-3')}>
+                        {info.desc}
+                      </p>
+                      {info.desc.length > 120 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowFullDesc((prev) => !prev)}
+                          className="text-xs text-accent hover:underline font-medium inline-block focus:outline-none"
+                        >
+                          {showFullDesc ? 'Show Less ▲' : 'Show Full Synopsis ▼'}
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

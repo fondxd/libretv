@@ -20,6 +20,16 @@ export interface SearchResultItem {
   year?: string;
   area?: string;
   remarks?: string;
+  /** 影片剧情简介 / 描述 */
+  desc?: string;
+  /** 主演 */
+  actor?: string;
+  /** 导演 */
+  director?: string;
+  /** 评分 (豆瓣/CMS评分) */
+  score?: string;
+  /** 更新时间 */
+  updatedAt?: string;
   /** 自定义源的 API 地址，详情请求需要 */
   sourceUrl?: string;
   isAdult?: boolean;

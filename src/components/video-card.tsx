@@ -20,19 +20,32 @@ export interface AggregatedGroup {
   typeName?: string;
   pic?: string;
   remarks?: string;
+  desc?: string;
+  actor?: string;
+  director?: string;
+  score?: string;
   items: SearchResultItem[];
 }
 
 function buildGroup(name: string, year: string | undefined, items: SearchResultItem[]): AggregatedGroup {
+  // Find longest or first non-empty description from items
+  const bestDesc = items
+    .map((i) => i.desc)
+    .filter((d): d is string => Boolean(d && d.trim().length > 0))
+    .sort((a, b) => (b?.length ?? 0) - (a?.length ?? 0))[0];
+
   return {
     key: `${name}|${year ?? ''}|${items.map((i) => `${i.sourceKey}_${i.vodId}`).join(',')}`,
     name,
     year,
     typeName: items.find((i) => i.typeName)?.typeName,
     pic: items.find((i) => i.pic)?.pic,
-    // 同一部剧各源文案详略不同（「全34集」/「完结」/「更新至34集」），推到统一结论，
-    // 否则同一部剧的来源列表会看起来状态各异
+    // 同一部剧各源文案详略不同（「全34集」/「完结」/「更新至34集」），推到统一结论
     remarks: inferGroupRemarks(items.map((i) => i.remarks)),
+    desc: bestDesc,
+    actor: items.find((i) => i.actor)?.actor,
+    director: items.find((i) => i.director)?.director,
+    score: items.find((i) => i.score)?.score,
     items,
   };
 }
@@ -196,9 +209,11 @@ export function AggregatedCard({
             <h3 className="font-semibold text-sm sm:text-base text-content mb-1.5 line-clamp-2 sm:line-clamp-3 leading-snug" title={group.name}>
               {group.name}
             </h3>
-            <div className="flex flex-wrap gap-1 mb-2">
+            <div className="flex flex-wrap items-center gap-1 mb-1.5">
               {group.typeName && <span className="tag bg-accent/15 text-accent font-medium">{group.typeName}</span>}
               {group.year && <span className="tag bg-purple-500/15 text-purple-600 dark:text-purple-300 font-medium">{group.year}</span>}
+              {group.score && <span className="tag bg-amber-500/15 text-amber-500 font-bold">★ {group.score}</span>}
+              {group.remarks && <span className="tag bg-line/60 text-muted">{group.remarks}</span>}
               {adult && <span className="tag bg-pink-500/15 text-pink-600 dark:text-pink-400 font-medium">(18+)</span>}
               {singleKey && (
                 <QualityBadge
@@ -208,7 +223,17 @@ export function AggregatedCard({
                 />
               )}
             </div>
-            <p className="text-xs text-muted line-clamp-2 sm:line-clamp-3 mb-2 leading-relaxed">{group.remarks || 'No description available'}</p>
+            {/* Show description of the show with fallback */}
+            <p className="text-xs text-muted line-clamp-2 sm:line-clamp-3 mb-1.5 leading-relaxed" title={group.desc || group.remarks}>
+              {group.desc || (group.remarks ? `Status: ${group.remarks}` : 'No synopsis available')}
+            </p>
+            {/* Cast & Director subtitle */}
+            {(group.director || group.actor) && (
+              <div className="text-[11px] text-faint truncate space-x-2">
+                {group.director && <span>Dir: {group.director}</span>}
+                {group.actor && <span>Cast: {group.actor}</span>}
+              </div>
+            )}
           </div>
           <div className="flex items-center justify-between gap-1.5 mt-auto pt-2 border-t border-line">
             <span className="tag bg-chip text-muted truncate max-w-[80%] font-medium">
@@ -367,11 +392,21 @@ export function VideoCard({ item, onClick }: { item: SearchResultItem; onClick: 
             <h3 className="font-semibold text-sm sm:text-base text-content mb-1.5 line-clamp-2 sm:line-clamp-3 leading-snug" title={item.name}>
               {item.name}
             </h3>
-            <div className="flex flex-wrap gap-1 mb-2">
+            <div className="flex flex-wrap items-center gap-1 mb-1.5">
               {item.typeName && <span className="tag bg-accent/15 text-accent font-medium">{item.typeName}</span>}
               {item.year && <span className="tag bg-purple-500/15 text-purple-600 dark:text-purple-300 font-medium">{item.year}</span>}
+              {item.score && <span className="tag bg-amber-500/15 text-amber-500 font-bold">★ {item.score}</span>}
+              {item.remarks && <span className="tag bg-line/60 text-muted">{formatRemarks(item.remarks)}</span>}
             </div>
-            <p className="text-xs text-muted line-clamp-2 sm:line-clamp-3 mb-2 leading-relaxed">{formatRemarks(item.remarks) || 'No description available'}</p>
+            <p className="text-xs text-muted line-clamp-2 sm:line-clamp-3 mb-1.5 leading-relaxed" title={item.desc || item.remarks}>
+              {item.desc || (item.remarks ? `Status: ${formatRemarks(item.remarks)}` : 'No synopsis available')}
+            </p>
+            {(item.director || item.actor) && (
+              <div className="text-[11px] text-faint truncate space-x-2">
+                {item.director && <span>Dir: {item.director}</span>}
+                {item.actor && <span>Cast: {item.actor}</span>}
+              </div>
+            )}
           </div>
           <div className="flex items-center justify-between mt-auto pt-2 border-t border-line">
             <span className="tag bg-chip text-muted truncate max-w-[80%] font-medium">{item.sourceName}</span>

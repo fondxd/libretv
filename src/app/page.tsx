@@ -24,6 +24,7 @@ import { Pagination } from '@/components/pagination';
  * 搜索状态由 React Query 管理，失败源在结果区顶部以非阻塞方式展示。
  */
 const DEFAULT_PAGE_SIZE = 36;
+type SearchSortMode = 'default' | 'year_desc' | 'year_asc' | 'name_asc' | 'name_desc' | 'sources_desc';
 
 export default function HomePage() {
   return (
@@ -42,6 +43,7 @@ function HomeContent() {
   const currentPage = Math.max(1, isNaN(urlPage) ? 1 : urlPage);
   const resultsRef = useRef<HTMLElement>(null);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+  const [sortBy, setSortBy] = useState<SearchSortMode>('default');
 
   useEffect(() => {
     try {
@@ -170,7 +172,35 @@ function HomeContent() {
       .filter((o) => !o.ok)
       .map((o) => ({ sourceKey: o.sourceKey, error: o.error || 'Request failed', timedOut: o.timedOut }));
   // 跨源同名聚合：同名影片合并为一张卡片，展开后可选择具体来源
-  const groups = useMemo(() => aggregateResults(list), [list]);
+  const rawGroups = useMemo(() => aggregateResults(list), [list]);
+
+  // 排序：按默认相关度、最新年份、最早年份、剧名A-Z、最多资源数
+  const groups = useMemo(() => {
+    if (sortBy === 'default') return rawGroups;
+    const copy = [...rawGroups];
+    switch (sortBy) {
+      case 'year_desc':
+        return copy.sort((a, b) => {
+          const ya = parseInt(a.year || '0', 10) || 0;
+          const yb = parseInt(b.year || '0', 10) || 0;
+          return yb - ya;
+        });
+      case 'year_asc':
+        return copy.sort((a, b) => {
+          const ya = parseInt(a.year || '9999', 10) || 9999;
+          const yb = parseInt(b.year || '9999', 10) || 9999;
+          return ya - yb;
+        });
+      case 'name_asc':
+        return copy.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+      case 'name_desc':
+        return copy.sort((a, b) => b.name.localeCompare(a.name, undefined, { sensitivity: 'base' }));
+      case 'sources_desc':
+        return copy.sort((a, b) => b.items.length - a.items.length);
+      default:
+        return copy;
+    }
+  }, [rawGroups, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(groups.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
@@ -364,6 +394,42 @@ function HomeContent() {
                 </div>
               )}
             </div>
+
+            {/* 结果排序栏 */}
+            {rawGroups.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3.5 p-2 bg-surface-raised border border-line rounded-xl">
+                <div className="flex items-center gap-1.5 text-xs text-faint">
+                  <span>↕️</span>
+                  <span className="font-medium text-muted">Sort By:</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { id: 'default', label: 'Default' },
+                    { id: 'year_desc', label: '📅 Newest Year' },
+                    { id: 'year_asc', label: '⏳ Oldest Year' },
+                    { id: 'name_asc', label: '🔤 Title A-Z' },
+                    { id: 'sources_desc', label: '⚡ Most Sources' },
+                  ].map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => {
+                        setSortBy(s.id as SearchSortMode);
+                        handlePageChange(1);
+                      }}
+                      className={cn(
+                        'px-2.5 py-1 text-xs rounded-lg font-medium transition-colors',
+                        sortBy === s.id
+                          ? 'bg-accent text-accent-contrast shadow-sm'
+                          : 'bg-chip text-muted hover:text-content hover:bg-hover'
+                      )}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {failures.length > 0 && (
               <div className="mb-3 text-xs bg-chip rounded-lg px-3 py-2 flex flex-wrap gap-x-3 gap-y-1">

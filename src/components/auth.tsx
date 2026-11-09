@@ -50,6 +50,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 与 Providers 共用同一 query key 与缓存，避免 /api/status 被请求两次
   useEffect(() => {
+    // Android TV and JMGO apps are permanently verified without password prompt
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent;
+      if (ua.includes('LibreTV-Android') || ua.includes('JMGO')) {
+        setVerified(true);
+        setSetupRequired(false);
+        setChecked(true);
+        return;
+      }
+    }
+
     let cancelled = false;
     queryClient
       .fetchQuery({ queryKey: STATUS_QUERY_KEY, queryFn: () => api.status() })
@@ -71,6 +82,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(
     () =>
       onUnauthorized((event) => {
+        if (typeof navigator !== 'undefined') {
+          const ua = navigator.userAgent;
+          if (ua.includes('LibreTV-Android') || ua.includes('JMGO')) {
+            // Never open login modal on Android TV or JMGO projector
+            return;
+          }
+        }
         const setup = (event as CustomEvent).detail === 'setup';
         setSetupRequired(setup);
         setVerified(false);

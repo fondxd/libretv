@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Header } from '@/components/header';
@@ -308,6 +309,33 @@ function HomeContent() {
               />
             )}
           </div>
+        </section>
+
+        {/* Quick Hub Navigation: Movies, Singapore TV, Live IPTV */}
+        <section aria-label="Content Navigation" className="mb-6 flex items-center justify-center gap-2.5 flex-wrap">
+          <Link
+            href="/"
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-accent text-accent-contrast shadow-sm flex items-center gap-1.5 transition-transform hover:scale-105"
+          >
+            <span>🎬</span>
+            <span>All Movies & Series</span>
+          </Link>
+          <Link
+            href="/singapore"
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-surface-raised hover:bg-hover text-content border border-line flex items-center gap-1.5 transition-all hover:scale-105"
+          >
+            <span>🇸🇬</span>
+            <span>Singapore Live TV & Radio</span>
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse ml-0.5" />
+          </Link>
+          <Link
+            href="/live"
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-surface-raised hover:bg-hover text-content border border-line flex items-center gap-1.5 transition-all hover:scale-105"
+          >
+            <span>📺</span>
+            <span>Global Live IPTV</span>
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse ml-0.5" />
+          </Link>
         </section>
 
         {/* 搜索结果 */}

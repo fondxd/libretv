@@ -797,29 +797,57 @@ export default function SingaporeStreamingPage() {
             </div>
 
             {/* Direct APK Download Banner */}
-            <div className="p-4 bg-gradient-to-r from-accent/20 to-accent/5 border border-accent/40 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center text-xl">
-                  🤖
+            <div className="space-y-2">
+              <div className="p-3.5 bg-gradient-to-r from-accent/20 to-accent/5 border border-accent/40 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-accent/20 flex items-center justify-center text-lg">
+                    📺
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-content flex items-center gap-2">
+                      LibreTV Standard APK
+                      <span className="text-[10px] bg-accent text-accent-contrast px-1.5 py-0.2 rounded font-mono">v1.0 • 1.7 MB</span>
+                    </h3>
+                    <p className="text-xs text-muted">
+                      For Google TV, modern Android TV boxes, tablets & phones.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-content flex items-center gap-2">
-                    LibreTV Android APK
-                    <span className="text-[10px] bg-accent text-accent-contrast px-1.5 py-0.2 rounded font-mono">v1.0 • 3.2 MB</span>
-                  </h3>
-                  <p className="text-xs text-muted">
-                    Install directly on Android TV, Google TV, or any Android device.
-                  </p>
-                </div>
+                <a
+                  href="/libretv.apk"
+                  download="LibreTV.apk"
+                  className="btn-primary text-xs py-1.5 px-3.5 flex items-center gap-1.5 shadow-lg whitespace-nowrap"
+                >
+                  <span>📥</span>
+                  <span>Download APK</span>
+                </a>
               </div>
-              <a
-                href="/libretv.apk"
-                download="LibreTV.apk"
-                className="btn-primary text-xs py-2 px-4 flex items-center gap-2 shadow-lg whitespace-nowrap"
-              >
-                <span>📥</span>
-                <span>Download APK</span>
-              </a>
+
+              {/* JMGO J7 Edition */}
+              <div className="p-3.5 bg-gradient-to-r from-purple-500/20 to-purple-500/5 border border-purple-500/40 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center text-lg">
+                    📽️
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-content flex items-center gap-2">
+                      LibreTV (JMGO J7 China Edition)
+                      <span className="text-[10px] bg-purple-600 text-white px-1.5 py-0.2 rounded font-mono">Android 5.0+ • 1.7 MB</span>
+                    </h3>
+                    <p className="text-xs text-muted">
+                      Specially optimized for JMGO J7, China Android TV ROMs, MStar/Amlogic chips.
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href="/libretv-jmgo.apk"
+                  download="LibreTV-JMGO.apk"
+                  className="btn-secondary text-xs py-1.5 px-3.5 flex items-center gap-1.5 shadow-lg whitespace-nowrap border-purple-500/50 hover:bg-purple-500/20 text-purple-200"
+                >
+                  <span>📥</span>
+                  <span>Download JMGO APK</span>
+                </a>
+              </div>
             </div>
 
             {/* Endpoints Quick Copy Grid */}

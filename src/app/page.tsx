@@ -24,7 +24,7 @@ import { Pagination } from '@/components/pagination';
  * 搜索状态由 React Query 管理，失败源在结果区顶部以非阻塞方式展示。
  */
 const DEFAULT_PAGE_SIZE = 36;
-type SearchSortMode = 'default' | 'year_desc' | 'year_asc' | 'name_asc' | 'name_desc' | 'sources_desc';
+type SearchSortMode = 'default' | 'date_desc' | 'year_desc' | 'year_asc' | 'name_asc' | 'name_desc' | 'sources_desc';
 
 export default function HomePage() {
   return (
@@ -44,6 +44,7 @@ function HomeContent() {
   const resultsRef = useRef<HTMLElement>(null);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [sortBy, setSortBy] = useState<SearchSortMode>('default');
+  const [selectedYear, setSelectedYear] = useState<string>('all');
 
   useEffect(() => {
     try {
@@ -146,6 +147,7 @@ function HomeContent() {
       toast('Please add and enable at least one video source in Settings', 'warning');
       return;
     }
+    setSelectedYear('all');
     router.push(`/?s=${encodeURIComponent(query)}&p=1`, { scroll: false });
     searchHistory.record(query);
   };
@@ -174,11 +176,42 @@ function HomeContent() {
   // 跨源同名聚合：同名影片合并为一张卡片，展开后可选择具体来源
   const rawGroups = useMemo(() => aggregateResults(list), [list]);
 
-  // 排序：按默认相关度、最新年份、最早年份、剧名A-Z、最多资源数
+  // 可供筛选的上映年份列表（从搜索结果中动态提取并去重排序）
+  const availableYears = useMemo(() => {
+    const set = new Set<string>();
+    for (const g of rawGroups) {
+      if (g.year && /^\d{4}$/.test(g.year.trim())) {
+        set.add(g.year.trim());
+      }
+    }
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [rawGroups]);
+
+  // 各年份影片计数
+  const yearCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const g of rawGroups) {
+      if (g.year && /^\d{4}$/.test(g.year.trim())) {
+        const y = g.year.trim();
+        counts[y] = (counts[y] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [rawGroups]);
+
+  // 按所选年份筛选
+  const filteredByYear = useMemo(() => {
+    if (selectedYear === 'all') return rawGroups;
+    return rawGroups.filter((g) => g.year === selectedYear);
+  }, [rawGroups, selectedYear]);
+
+  // 排序：默认、最新添加/更新时间、最新年份、最早年份、剧名A-Z、最多资源数
   const groups = useMemo(() => {
-    if (sortBy === 'default') return rawGroups;
-    const copy = [...rawGroups];
+    if (sortBy === 'default') return filteredByYear;
+    const copy = [...filteredByYear];
     switch (sortBy) {
+      case 'date_desc':
+        return copy.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
       case 'year_desc':
         return copy.sort((a, b) => {
           const ya = parseInt(a.year || '0', 10) || 0;
@@ -200,7 +233,7 @@ function HomeContent() {
       default:
         return copy;
     }
-  }, [rawGroups, sortBy]);
+  }, [filteredByYear, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(groups.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
@@ -395,38 +428,90 @@ function HomeContent() {
               )}
             </div>
 
-            {/* 结果排序栏 */}
+            {/* 年份筛选与排序控制栏 */}
             {rawGroups.length > 0 && (
-              <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3.5 p-2 bg-surface-raised border border-line rounded-xl">
-                <div className="flex items-center gap-1.5 text-xs text-faint">
-                  <span>↕️</span>
-                  <span className="font-medium text-muted">Sort By:</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {[
-                    { id: 'default', label: 'Default' },
-                    { id: 'year_desc', label: '📅 Newest Year' },
-                    { id: 'year_asc', label: '⏳ Oldest Year' },
-                    { id: 'name_asc', label: '🔤 Title A-Z' },
-                    { id: 'sources_desc', label: '⚡ Most Sources' },
-                  ].map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => {
-                        setSortBy(s.id as SearchSortMode);
-                        handlePageChange(1);
-                      }}
-                      className={cn(
-                        'px-2.5 py-1 text-xs rounded-lg font-medium transition-colors',
-                        sortBy === s.id
-                          ? 'bg-accent text-accent-contrast shadow-sm'
-                          : 'bg-chip text-muted hover:text-content hover:bg-hover'
-                      )}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
+              <div className="space-y-2 mb-3.5">
+                {/* 上映年份筛选栏 */}
+                {availableYears.length > 0 && (
+                  <div className="flex items-center gap-2 p-2 bg-surface-raised border border-line rounded-xl text-xs overflow-x-auto scrollbar-thin">
+                    <div className="flex items-center gap-1.5 text-faint shrink-0 pl-1">
+                      <span>📆</span>
+                      <span className="font-medium text-muted">Release Year:</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedYear('all');
+                          handlePageChange(1);
+                        }}
+                        className={cn(
+                          'px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors',
+                          selectedYear === 'all'
+                            ? 'bg-accent text-accent-contrast shadow-sm'
+                            : 'bg-chip text-muted hover:text-content hover:bg-hover'
+                        )}
+                      >
+                        All Years ({rawGroups.length})
+                      </button>
+                      {availableYears.map((yr) => {
+                        const count = yearCounts[yr] || 0;
+                        return (
+                          <button
+                            key={yr}
+                            type="button"
+                            onClick={() => {
+                              setSelectedYear(yr);
+                              handlePageChange(1);
+                            }}
+                            className={cn(
+                              'px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors',
+                              selectedYear === yr
+                                ? 'bg-accent text-accent-contrast shadow-sm'
+                                : 'bg-chip text-muted hover:text-content hover:bg-hover'
+                            )}
+                          >
+                            {yr} <span className="opacity-75 text-[10px]">({count})</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 结果排序栏 */}
+                <div className="flex flex-wrap items-center justify-between gap-2.5 p-2 bg-surface-raised border border-line rounded-xl">
+                  <div className="flex items-center gap-1.5 text-xs text-faint">
+                    <span>↕️</span>
+                    <span className="font-medium text-muted">Sort By:</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {[
+                      { id: 'default', label: 'Default' },
+                      { id: 'date_desc', label: '🕒 Date Added' },
+                      { id: 'year_desc', label: '📅 Newest Year' },
+                      { id: 'year_asc', label: '⏳ Oldest Year' },
+                      { id: 'name_asc', label: '🔤 Title A-Z' },
+                      { id: 'sources_desc', label: '⚡ Most Sources' },
+                    ].map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setSortBy(s.id as SearchSortMode);
+                          handlePageChange(1);
+                        }}
+                        className={cn(
+                          'px-2.5 py-1 text-xs rounded-lg font-medium transition-colors',
+                          sortBy === s.id
+                            ? 'bg-accent text-accent-contrast shadow-sm'
+                            : 'bg-chip text-muted hover:text-content hover:bg-hover'
+                        )}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

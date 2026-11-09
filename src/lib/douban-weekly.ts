@@ -70,6 +70,7 @@ export function doubanWeeklyToItem(raw: DoubanWeeklyRaw, isTv: boolean): DoubanI
   // 可稳定加载；cover_proxy（doubanio.viki.moe 公共镜像）限流严重，仅作兜底
   const cover = raw.cover || raw.cover_proxy;
   if (!raw.id || !raw.title || !cover) return undefined;
+  const yearMatch = raw.card_subtitle?.match(/^(\d{4})/);
   return {
     id: String(raw.id),
     title: raw.title,
@@ -77,6 +78,7 @@ export function doubanWeeklyToItem(raw: DoubanWeeklyRaw, isTv: boolean): DoubanI
     rating: raw.rating && raw.rating > 0 ? String(raw.rating) : undefined,
     desc: raw.description,
     subtitle: raw.card_subtitle,
+    year: yearMatch ? yearMatch[1] : undefined,
     isTv,
   };
 }

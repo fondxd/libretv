@@ -258,7 +258,8 @@ const HOT_LISTS = [
 
 function HotListView({ onPick }: { onPick: (title: string) => void }) {
   const [listId, setListId] = useState(HOT_LISTS[0].id);
-  const [sortMode, setSortMode] = useState<'default' | 'rating_desc' | 'name_asc'>('default');
+  const [sortMode, setSortMode] = useState<'default' | 'rating_desc' | 'year_desc' | 'year_asc' | 'name_asc'>('default');
+  const [selectedYear, setSelectedYear] = useState<string>('all');
 
   const query = useQuery({
     queryKey: ['hot-list', listId],
@@ -267,27 +268,89 @@ function HotListView({ onPick }: { onPick: (title: string) => void }) {
 
   const items = query.data?.items ?? [];
 
+  const availableYears = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of items) {
+      if (item.year && /^\d{4}$/.test(item.year.trim())) {
+        set.add(item.year.trim());
+      }
+    }
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    if (selectedYear === 'all') return items;
+    return items.filter((item) => item.year === selectedYear);
+  }, [items, selectedYear]);
+
   const sortedItems = useMemo(() => {
-    if (sortMode === 'default') return items;
-    const copy = [...items];
+    if (sortMode === 'default') return filteredItems;
+    const copy = [...filteredItems];
     if (sortMode === 'rating_desc') {
       return copy.sort((a, b) => (parseFloat(b.rating || '0') || 0) - (parseFloat(a.rating || '0') || 0));
+    }
+    if (sortMode === 'year_desc') {
+      return copy.sort((a, b) => (parseInt(b.year || '0', 10) || 0) - (parseInt(a.year || '0', 10) || 0));
+    }
+    if (sortMode === 'year_asc') {
+      return copy.sort((a, b) => (parseInt(a.year || '9999', 10) || 9999) - (parseInt(b.year || '9999', 10) || 9999));
     }
     if (sortMode === 'name_asc') {
       return copy.sort((a, b) => a.title.localeCompare(b.title, 'zh-Hans-CN', { sensitivity: 'base' }));
     }
     return copy;
-  }, [items, sortMode]);
+  }, [filteredItems, sortMode]);
 
   return (
     <section aria-label="Trending Charts">
       <div className="flex flex-wrap gap-1.5 mb-3">
         {HOT_LISTS.map((l) => (
-          <ChipButton key={l.id} active={listId === l.id} onClick={() => setListId(l.id)}>
+          <ChipButton
+            key={l.id}
+            active={listId === l.id}
+            onClick={() => {
+              setListId(l.id);
+              setSelectedYear('all');
+            }}
+          >
             {l.label}
           </ChipButton>
         ))}
       </div>
+
+      {/* Year Filter for Trending Charts */}
+      {availableYears.length > 0 && (
+        <div className="flex items-center gap-1.5 mb-2.5 overflow-x-auto scrollbar-thin text-xs">
+          <span className="text-faint text-[11px] shrink-0 font-medium">Release Year:</span>
+          <button
+            type="button"
+            onClick={() => setSelectedYear('all')}
+            className={cn(
+              'px-2 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors',
+              selectedYear === 'all'
+                ? 'bg-accent text-accent-contrast shadow-sm'
+                : 'bg-chip text-muted hover:text-content hover:bg-hover'
+            )}
+          >
+            All
+          </button>
+          {availableYears.map((yr) => (
+            <button
+              key={yr}
+              type="button"
+              onClick={() => setSelectedYear(yr)}
+              className={cn(
+                'px-2 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors',
+                selectedYear === yr
+                  ? 'bg-accent text-accent-contrast shadow-sm'
+                  : 'bg-chip text-muted hover:text-content hover:bg-hover'
+              )}
+            >
+              {yr}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Home Movie Sorting Bar */}
       {items.length > 0 && (
@@ -300,6 +363,8 @@ function HotListView({ onPick }: { onPick: (title: string) => void }) {
             {[
               { id: 'default', label: 'Trending Rank' },
               { id: 'rating_desc', label: '★ Highest Rating' },
+              { id: 'year_desc', label: '📅 Newest Year' },
+              { id: 'year_asc', label: '⏳ Oldest Year' },
               { id: 'name_asc', label: '🔤 Title A-Z' },
             ].map((s) => (
               <button

@@ -63,6 +63,7 @@ export interface DoubanItem {
   isTv?: boolean;
   desc?: string;
   subtitle?: string;
+  year?: string;
 }
 
 export interface SourceSearchOutcome {

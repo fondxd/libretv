@@ -24,6 +24,7 @@ export interface AggregatedGroup {
   actor?: string;
   director?: string;
   score?: string;
+  updatedAt?: string;
   items: SearchResultItem[];
 }
 
@@ -33,6 +34,12 @@ function buildGroup(name: string, year: string | undefined, items: SearchResultI
     .map((i) => i.desc)
     .filter((d): d is string => Boolean(d && d.trim().length > 0))
     .sort((a, b) => (b?.length ?? 0) - (a?.length ?? 0))[0];
+
+  // Find latest update time among items
+  const latestUpdated = items
+    .map((i) => i.updatedAt)
+    .filter((u): u is string => Boolean(u && u.trim().length > 0))
+    .sort((a, b) => b.localeCompare(a))[0];
 
   return {
     key: `${name}|${year ?? ''}|${items.map((i) => `${i.sourceKey}_${i.vodId}`).join(',')}`,
@@ -46,6 +53,7 @@ function buildGroup(name: string, year: string | undefined, items: SearchResultI
     actor: items.find((i) => i.actor)?.actor,
     director: items.find((i) => i.director)?.director,
     score: items.find((i) => i.score)?.score,
+    updatedAt: latestUpdated,
     items,
   };
 }
@@ -235,10 +243,17 @@ export function AggregatedCard({
               </div>
             )}
           </div>
-          <div className="flex items-center justify-between gap-1.5 mt-auto pt-2 border-t border-line">
-            <span className="tag bg-chip text-muted truncate max-w-[80%] font-medium">
-              {multi ? `${group.items.length} Sources Available` : group.items[0].sourceName}
-            </span>
+          <div className="flex items-center justify-between gap-1.5 mt-auto pt-2 border-t border-line text-[11px]">
+            <div className="flex items-center gap-1.5 truncate max-w-[80%]">
+              <span className="tag bg-chip text-muted truncate font-medium">
+                {multi ? `${group.items.length} Sources Available` : group.items[0].sourceName}
+              </span>
+              {group.updatedAt && (
+                <span className="text-faint text-[10px] hidden sm:inline truncate" title={`Last Added / Updated: ${group.updatedAt}`}>
+                  🕒 {group.updatedAt.slice(0, 10)}
+                </span>
+              )}
+            </div>
             {multi && (
               <span className="flex items-center gap-1 shrink-0">
                 {progress.best && (
@@ -408,8 +423,13 @@ export function VideoCard({ item, onClick }: { item: SearchResultItem; onClick: 
               </div>
             )}
           </div>
-          <div className="flex items-center justify-between mt-auto pt-2 border-t border-line">
-            <span className="tag bg-chip text-muted truncate max-w-[80%] font-medium">{item.sourceName}</span>
+          <div className="flex items-center justify-between gap-1.5 mt-auto pt-2 border-t border-line text-[11px]">
+            <span className="tag bg-chip text-muted truncate max-w-[70%] font-medium">{item.sourceName}</span>
+            {item.updatedAt && (
+              <span className="text-faint text-[10px] truncate" title={`Last Added / Updated: ${item.updatedAt}`}>
+                🕒 {item.updatedAt.slice(0, 10)}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -422,7 +442,7 @@ export function DoubanCard({
   item,
   onClick,
 }: {
-  item: { title: string; cover: string; rating?: string; desc?: string; subtitle?: string };
+  item: { title: string; cover: string; rating?: string; desc?: string; subtitle?: string; year?: string };
   onClick: () => void;
 }) {
   const imageProxyMode = useAppStore((s) => s.imageProxyMode);
@@ -466,6 +486,11 @@ export function DoubanCard({
         {item.rating && (
           <span className={cn('absolute top-1.5 right-1.5 tag bg-black/75 text-rating font-bold shadow-sm')}>
             ★ {item.rating}
+          </span>
+        )}
+        {item.year && (
+          <span className="absolute bottom-1.5 left-1.5 tag bg-black/75 text-white/90 text-[10px] font-medium shadow-sm">
+            {item.year}
           </span>
         )}
       </div>
